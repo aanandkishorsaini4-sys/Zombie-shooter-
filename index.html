@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zombie Shooter Elite with Ads</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #111; font-family: 'Courier New', Courier, monospace; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; color: #fff; }
+        
+        #scoreBoard { font-size: 26px; color: #e74c3c; font-weight: bold; margin-bottom: 5px; text-shadow: 0 0 10px #e74c3c; }
+        
+        /* डेंजर ज़ोन (Battleground) */
+        #gameArea { 
+            width: 340px; 
+            height: 420px; /* एड के लिए हाइट थोड़ी कम की है */
+            background: radial-gradient(circle, #1a0505, #000000); 
+            position: relative; 
+            overflow: hidden; 
+            border: 4px solid #e74c3c; 
+            border-bottom: none; /* नीचे एड बॉक्स जुड़ेगा */
+            border-radius: 15px 15px 0 0; 
+            box-shadow: 0 -5px 20px rgba(231, 76, 60, 0.3);
+        }
+        
+        /* 💰 यह है आपकी कमाई वाला एड बैनर (Dummy Google Ad) */
+        #adBanner {
+            width: 340px;
+            height: 50px;
+            background: #222;
+            border: 4px solid #e74c3c;
+            border-top: 1px solid #444;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(231, 76, 60, 0.3);
+        }
+        #adBanner .ad-text {
+            font-size: 11px;
+            color: #7f8c8d;
+            position: absolute;
+            top: 2px;
+            left: 5px;
+            font-family: Arial, sans-serif;
+        }
+        #adBanner .ad-content {
+            color: #3498db;
+            font-size: 14px;
+            font-weight: bold;
+            text-decoration: underline;
+            animation: flashAd 1.5s infinite alternate;
+            font-family: sans-serif;
+            cursor: pointer;
+        }
+        @keyframes flashAd {
+            from { opacity: 0.6; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1.02); }
+        }
+        
+        /* आपका शूटर (Player/Gun) */
+        #player { 
+            width: 40px; height: 45px; 
+            background: linear-gradient(to top, #27ae60, #2ecc71); 
+            position: absolute; bottom: 15px; left: 150px; 
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 0 10px #2ecc71;
+        }
+        /* गन की नली */
+        #player::before { content: ''; width: 10px; height: 20px; background: #fff; position: absolute; top: -15px; left: 15px; border-radius: 3px; }
+        
+        /* गोलियां (Bullets) */
+        .bullet { width: 6px; height: 15px; background: #f1c40f; position: absolute; border-radius: 3px; box-shadow: 0 0 8px #f1c40f; }
+        
+        /* खतरनाक मॉन्स्टर्स (Zombies) */
+        .zombie { 
+            width: 35px; height: 35px; 
+            background: linear-gradient(135deg, #9b59b6, #e74c3c); 
+            position: absolute; border-radius: 50%; 
+            box-shadow: 0 0 12px #e74c3c;
+        }
+        .zombie::before { content: '👀'; font-size: 14px; position: absolute; top: 5px; left: 4px; }
+        
+        /* गेम के बटन */
+        .controls { display: flex; margin-top: 15px; gap: 15px; align-items: center; }
+        .btn { 
+            width: 85px; height: 55px; 
+            color: white; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; 
+            display: flex; align-items: center; justify-content: center; 
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5); cursor: pointer;
+            -webkit-user-select: none; user-select: none;
+        }
+        .btn:active { transform: scale(0.95); }
+        
+        #leftBtn { background: #2980b9; }
+        #rightBtn { background: #2980b9; }
+        #shootBtn { width: 110px; height: 65px; background: #e74c3c; font-size: 22px; box-shadow: 0 0 15px #e74c3c; text-shadow: 1px 1px 2px #000; }
+    </style>
+</head>
+<body>
+
+    <div id="scoreBoard">KILLS: <span id="score">0</span></div>
+    
+    <div id="gameArea">
+        <div id="player"></div>
+    </div>
+    
+    <div id="adBanner">
+        <span class="ad-text">Ads by Google</span>
+        <div class="ad-content" onclick="alert('असली गेम में इसपर क्लिक करते ही आपको पैसे मिलते!')">🔥 1 दिन में प्रो प्लेयर कैसे बनें? यहाँ क्लिक करें!</div>
+    </div>
+    
+    <div class="controls">
+        <button class="btn" id="leftBtn">◀ L</button>
+        <button class="btn" id="shootBtn">💥FIRE</button>
+        <button class="btn" id="rightBtn">R ▶</button>
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('gameArea');
+        const player = document.getElementById('player');
+        const scoreDisplay = document.getElementById('score');
+        const leftBtn = document.getElementById('leftBtn');
+        const rightBtn = document.getElementById('rightBtn');
+        const shootBtn = document.getElementById('shootBtn');
+        
+        let playerX = 150;
+        let score = 0;
+        let gameActive = true;
+        let zombies = [];
+        let bullets = [];
+        let zombieSpeed = 3;
+        let spawnRate = 0.02;
+        
+        leftBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(playerX > 15 && gameActive) { playerX -= 35; player.style.left = playerX + 'px'; } });
+        rightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); if(playerX < 285 && gameActive) { playerX += 35; player.style.left = playerX + 'px'; } });
+        shootBtn.addEventListener('touchstart', (e) => { e.preventDefault(); fireBullet(); });
+        
+        function fireBullet() {
+            if (!gameActive) return;
+            const b = document.createElement('div');
+            b.classList.add('bullet');
+            b.style.left = (playerX + 17) + 'px';
+            b.style.top = '360px'; /* नीचे से गोली एडजस्ट की */
+            gameArea.appendChild(b);
+            bullets.push({ element: b, x: playerX + 17, y: 360 });
+        }
+        
+        function spawnZombie() {
+            if (Math.random() < spawnRate) {
+                const z = document.createElement('div');
+                z.classList.add('zombie');
+                let randomX = Math.floor(Math.random() * 290) + 10;
+                z.style.left = randomX + 'px';
+                z.style.top = '-40px';
+                gameArea.appendChild(z);
+                zombies.push({ element: z, x: randomX, y: -40 });
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameActive) return;
+            
+            spawnZombie();
+            
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                bullets[i].y -= 8;
+                bullets[i].element.style.top = bullets[i].y + 'px';
+                if (bullets[i].y < 0) {
+                    bullets[i].element.remove();
+                    bullets.splice(i, 1);
+                }
+            }
+            
+            for (let j = zombies.length - 1; j >= 0; j--) {
+                zombies[j].y += zombieSpeed;
+                zombies[j].element.style.top = zombies[j].y + 'px';
+                
+                if (zombies[j].y + 35 > 360 && zombies[j].x + 35 > playerX && zombies[j].x < playerX + 40) {
+                    gameActive = false;
+                    alert("💀 SQUAD WIPED OUT! \nकुल किल्स (Kills): " + score + "\nदोबारा खेलने के लिए OK दबाएं।");
+                    location.reload();
+                }
+                
+                if (zombies[j].y > 420) {
+                    zombies[j].element.remove();
+                    zombies.splice(j, 1);
+                }
+            }
+            
+            for (let bIdx = bullets.length - 1; bIdx >= 0; bIdx--) {
+                for (let zIdx = zombies.length - 1; zIdx >= 0; zIdx--) {
+                    if (bullets[bIdx] && zombies[zIdx]) {
+                        let b = bullets[bIdx];
+                        let z = zombies[zIdx];
+                        
+                        if (b.y < z.y + 35 && b.y + 15 > z.y && b.x < z.x + 35 && b.x + 6 > z.x) {
+                            z.element.remove();
+                            zombies.splice(zIdx, 1);
+                            b.element.remove();
+                            bullets.splice(bIdx, 1);
+                            
+                            score += 1;
+                            scoreDisplay.innerText = score;
+                            
+                            if (score % 10 === 0) {
+                                zombieSpeed += 0.5;
+                                spawnRate += 0.005;
+                            }
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        gameLoop();
+    </script>
+</body>
+</html>
