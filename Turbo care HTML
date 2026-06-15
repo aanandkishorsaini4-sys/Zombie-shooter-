@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>टर्बो गियर 🏎️ - हाई स्पीड गेम</title>
+    <style>
+        /* 🎨 बच्चों के लिए चमकदार और साफ डिज़ाइन */
+        body {
+            background-color: #1a1a1a;
+            color: white;
+            font-family: 'Segoe UI', Roboto, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        h1 {
+            margin: 10px 0 5px 0;
+            font-size: 28px;
+            color: #ffdd00;
+            text-shadow: 2px 2px 4px #000;
+        }
+
+        #score-board {
+            font-size: 22px;
+            font-weight: bold;
+            color: #00ffcc;
+            margin-bottom: 5px;
+        }
+
+        /* 🛣️ गेम की स्क्रीन और रोड */
+        #game-area {
+            position: relative;
+            width: 340px;
+            height: 420px;
+            background: #333;
+            margin: 0 auto;
+            border: 4px solid #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0px 10px 20px rgba(0,0,0,0.5);
+        }
+
+        /* सड़क की पट्टियां */
+        .road-line {
+            position: absolute;
+            width: 8px;
+            height: 50px;
+            background: white;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        /* 🏎️ प्लेयर की कार */
+        #player-car {
+            position: absolute;
+            width: 40px;
+            height: 70px;
+            background: #ff2a2a;
+            bottom: 20px;
+            left: 150px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+            transition: transform 0.1s;
+        }
+        /* कार की डिज़ाइन */
+        #player-car::before {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 15px;
+            background: #00e5ff;
+            top: 15px;
+            left: 5px;
+            border-radius: 3px;
+        }
+
+        /* ⚠️ स्पीड ब्रेकर / गड्ढा */
+        #obstacle {
+            position: absolute;
+            width: 80px;
+            height: 15px;
+            background: #ff9f43;
+            border: 2px solid #fff;
+            left: 130px;
+            top: -50px;
+            border-radius: 5px;
+        }
+
+        /* 🕹️ बड़े कंट्रोल्स जो आसानी से दिखें */
+        .controls-container {
+            margin-top: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .pedals {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            max-width: 360px;
+        }
+
+        /* बड़े रेस और ब्रेक पैडल */
+        .btn-pedal {
+            width: 110px;
+            height: 80px;
+            font-size: 22px;
+            font-weight: bold;
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 6px #666;
+            color: white;
+        }
+        .btn-pedal:active {
+            box-shadow: 0 2px #366;
+            transform: translateY(4px);
+        }
+        #btn-brake { background: #ee5253; }
+        #btn-race { background: #10ac84; }
+
+        /* 🔄 असली जैसा दिखने वाला स्टेयरिंग */
+        #steering-wheel {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, #555 40%, #222 70%);
+            border: 8px solid #444;
+            border-radius: 50%;
+            margin-top: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 35px;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.5);
+            transition: transform 0.1s;
+        }
+
+        /* 🛑 गेम ओवर और ऐड वाली स्क्रीन */
+        #game-over-screen {
+            display: none;
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 10;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        #game-over-screen h2 { color: #ff2a2a; font-size: 32px; margin: 0 0 10px 0; }
+        
+        .ad-btn {
+            background: #ff9f43;
+            color: black;
+            padding: 15px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>टर्बो गियर 🏎️</h1>
+    <div id="score-board">स्कोर: <span id="score-val">0</span> | स्पीड: <span id="speed-val">0</span> km/h</div>
+
+    <!-- 🛣️ मुख्य गेम स्क्रीन -->
+    <div id="game-area">
+        <!-- सड़क की लाइनें -->
+        <div class="road-line" style="top: 0px;" id="line1"></div>
+        <div class="road-line" style="top: 120px;" id="line2"></div>
+        <div class="road-line" style="top: 240px;" id="line3"></div>
+        <div class="road-line" style="top: 360px;" id="line4"></div>
+
+        <!-- रुकावट और प्लेयर -->
+        <div id="obstacle"></div>
+        <div id="player-car"></div>
+
+        <!-- 🛑 गेम ओवर / ऐड पॉपअप -->
+        <div id="game-over-screen">
+            <h2>💥 BOOM! क्रैश हो गए</h2>
+            <p style="font-size: 18px;">स्पीड ब्रेकर पर गाड़ी बहुत तेज़ थी!</p>
+            <!-- यहाँ आपका ऐड वाला बटन काम करेगा -->
+            <button class="ad-btn" onclick="watchAdToRevive()">🎬 Watch Ad to Revive (0 दबाएं)</button>
+        </div>
+    </div>
+
+    <!-- 🕹️ प्लेयर कंट्रोल्स -->
+    <div class="controls-container">
+        <div class="pedals">
+            <button id="btn-brake" class="btn-pedal">ब्रेक 🛑</button>
+            <button id="btn-race" class="btn-pedal">रेस 🚀</button>
+        </div>
+        <!-- बच्चा इसे टच करके घुमा सकता है -->
+        <div id="steering-wheel">🔄</div>
+        <p style="color: #aaa; font-size: 14px; margin: 5px 0 0 0;">स्टेयरिंग को लेफ्ट-राइट दबाएं या रेस दबाकर रखें</p>
+    </div>
+
+    <script>
+        // 🧠 जावास्क्रिप्ट: गेम का असली दिमाग
+        const player = document.getElementById('player-car');
+        const obstacle = document.getElementById('obstacle');
+        const scoreVal = document.getElementById('score-val');
+        const speedVal = document.getElementById('speed-val');
+        const gameOverScreen = document.getElementById('game-over-screen');
+        const steering = document.getElementById('steering-wheel');
+
+        // गेम के वेरिएबल्स
+        let carX = 150; 
+        let speed = 0;
+        let score = 0;
+        let isGameOver = false;
+        let obstacleY = -50;
+        let obstacleX = 130;
+        let obstacleType = "breaker"; // breaker या pothole
+
+        // रोड लाइनों की पोजीशन
+        let linesY = [0, 120, 240, 360];
+
+        // 🚀 बटन दबाने का सिस्टम (कंट्रोल्स)
+        let isRacing = false;
+        let isBraking = false;
+
+        document.getElementById('btn-race').addEventListener('touchstart', () => isRacing = true);
+        document.getElementById('btn-race').addEventListener('touchend', () => isRacing = false);
+        document.getElementById('btn-brake').addEventListener('touchstart', () => isBraking = true);
+        document.getElementById('btn-brake').addEventListener('touchend', () => isBraking = false);
+        
+        // कीबोर्ड सपोर्ट कंप्यूटर/टेस्टिंग के लिए
+        document.getElementById('btn-race').addEventListener('mousedown', () => isRacing = true);
+        document.getElementById('btn-race').addEventListener('mouseup', () => isRacing = false);
+        document.getElementById('btn-brake').addEventListener('mousedown', () => isBraking = true);
+        document.getElementById('btn-brake').addEventListener('mouseup', () => isBraking = false);
+
+        // 🔄 स्टेयरिंग व्हील कंट्रोल (लेफ्ट/राइट टच)
+        steering.addEventListener('touchstart', (e) => {
+            let touchX = e.touches[0].clientX;
+            let screenWidth = window.innerWidth;
+            if(touchX < screenWidth/2) {
+                moveLeft();
+            } else {
+                moveRight();
+            }
+        });
+        // क्लिक टेस्टिंग
+        steering.addEventListener('click', (e) => {
+            if(e.clientX < window.innerWidth/2) { moveLeft(); } else { moveRight(); }
+        });
+
+        function moveLeft() {
+            if(carX > 20 && !isGameOver) { carX -= 25; steering.style.transform = 'rotate(-30deg)'; }
+            setTimeout(() => steering.style.transform = 'rotate(0deg)', 150);
+        }
+        function moveRight() {
+            if(carX < 280 && !isGameOver) { carX += 25; steering.style.transform = 'rotate(30deg)'; }
+            setTimeout(() => steering.style.transform = 'rotate(0deg)', 150);
+        }
+
+        // 🔄 मुख्य गेम लूप (जो लगातार 60fps पर चलेगा)
+        function updateGame() {
+            if (isGameOver) return;
+
+            // 1. रेस और ब्रेक का हिसाब
+            if (isRacing) {
+                if (speed < 180) speed += 2; // स्पीड बढ़ेगी
+            } else {
+                if (speed > 0) speed -= 1; // धीरे-धीरे कम होगी
+            }
+
+            if (isBraking) {
+                if (speed > 0) speed -= 5; // ब्रेक मारने पर तेज़ी से कम होगी
+            }
+
+            speedVal.innerText = speed;
+
+            // 2. सड़क को चलाना (स्पीड के हिसाब से)
+            if (speed > 0) {
+                score += Math.floor(speed / 20);
+                scoreVal.innerText = score;
+
+                linesY = linesY.map(y => {
+                    let newY = y + (speed / 10);
+                    return newY > 420 ? 0 : newY;
+                });
+                
+                document.getElementById('line1').style.top = linesY[0] + 'px';
+                document.getElementById('line2').style.top = linesY[1] + 'px';
+                document.getElementById('line3').style.top = linesY[2] + 'px';
+                document.getElementById('line4').style.top = linesY[3] + 'px';
+
+                // 3. स्पीड ब्रेकर को नीचे लाना
+                obstacleY += (speed / 10);
+                if (obstacleY > 420) {
+                    obstacleY = -50;
+                    obstacleX = Math.floor(Math.random() * 220) + 20;
+                    // रैंडम डिज़ाइन बदलना
+                    if(Math.random() > 0.5) {
+                        obstacle.style.background = "#ff9f43"; // स्पीड ब्रेकर
+                        obstacleType = "breaker";
+                    } else {
+                        obstacle.style.background = "#000"; // गड्ढा
+                        obstacleType = "pothole";
+                    }
+                }
+                obstacle.style.top = obstacleY + 'px';
+                obstacle.style.left = obstacleX + 'px';
+            }
+
+            player.style.left = carX + 'px';
+
+            // 4. 💥 क्रैश चेकिंग (कोलिशन डिटेक्शन)
+            // अगर कार रुकावट के पास पहुँचती है
+            if (obstacleY > 310 && obstacleY < 370) {
+                // चेक करना कि क्या कार और रुकावट एक ही लाइन में हैं
+                if (carX + 40 > obstacleX && carX < obstacleX + 80) {
+                    // अगर स्पीड 60 से ज़्यादा है, तो गाड़ी क्रैश हो जाएगी!
+                    if (speed > 60) {
+                        endGame();
+                    } else {
+                        // अगर स्पीड कम है, तो सिर्फ झटका लगेगा और स्पीड कम हो जाएगी
+                        speed = 10;
+                    }
+                }
+            }
+
+            requestAnimationFrame(updateGame);
+        }
+
+        // 🛑 गेम ओवर फंक्शन
+        function endGame() {
+            isGameOver = true;
+            gameOverScreen.style.display = 'flex';
+        }
+
+        // 🎬 ऐड देखकर दोबारा ज़िंदा होने वाला सिस्टम
+        function watchAdToRevive() {
+            alert("विज्ञापन (Ad) लोड हो रहा है... इसके बाद आपका गेम वहीं से शुरू होगा!");
+            // रीसेट करें
+            isGameOver = false;
+            speed = 0;
+            obstacleY = -100;
+            gameOverScreen.style.display = 'none';
+            requestAnimationFrame(updateGame);
+        }
+
+        // गेम शुरू करें
+        requestAnimationFrame(updateGame);
+    </script>
+</body>
+</html>
